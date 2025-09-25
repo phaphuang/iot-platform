@@ -20,6 +20,7 @@ const SmartManufacturing = () => {
       {components.length > 0 && rules.requiredComponents && (
         <IoTFlowEditor
           systemName="Smart Manufacturing System"
+          systemId="manufacturing"
           systemDescription={systemDescription}
           componentTypes={components}
           validationRules={rules}

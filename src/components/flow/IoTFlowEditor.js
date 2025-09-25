@@ -9,8 +9,11 @@ import ReactFlow, {
   Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Box, Paper, Typography, Snackbar, Alert, Button, Grid, Card, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fade, Zoom, Tooltip, LinearProgress, useMediaQuery, IconButton, SwipeableDrawer, useTheme, Divider } from '@mui/material';
+import { Box, Paper, Typography, Snackbar, Alert, Button, Grid, Card, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fade, Zoom, Tooltip, LinearProgress, useMediaQuery, IconButton, SwipeableDrawer, useTheme, Divider, ButtonGroup, Fab, Switch, FormControlLabel } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SaveIcon from '@mui/icons-material/Save';
+import RestoreIcon from '@mui/icons-material/Restore';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MenuIcon from '@mui/icons-material/Menu';
 import PaletteIcon from '@mui/icons-material/Palette';
 import CloseIcon from '@mui/icons-material/Close';
@@ -27,18 +30,21 @@ const nodeTypes = {
   componentNode: ComponentNode,
 };
 
-const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validationRules }) => {
+const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validationRules, systemId }) => {
   // Get the theme and media queries for responsive design
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  // Get the system ID from the system name
-  const systemId = systemName.toLowerCase().replace('system', '').trim().replace(/\s+/g, '-');
   const { progress, completeSystem } = useProgress();
   const navigate = useNavigate();
   // State for nodes and edges
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  // State for system persistence
+  const [hasLoadedState, setHasLoadedState] = useState(false);
+  const [hasSavedState, setHasSavedState] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [lastSavedTime, setLastSavedTime] = useState(null);
   // The state for tracking if dragging is happening
   const [, setIsDragging] = useState(false);
   const [isSystemValid, setIsSystemValid] = useState(false);
@@ -256,6 +262,109 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     setIsDragging(false);
   };
 
+  // Save the current system state to localStorage
+  const saveSystemState = (silent = false) => {
+    if (nodes.length === 0) return;
+    
+    try {
+      const now = new Date();
+      const timestamp = now.toISOString();
+      
+      const systemState = {
+        nodes,
+        edges,
+        timestamp,
+      };
+      
+      localStorage.setItem(`iot_system_${systemId}`, JSON.stringify(systemState));
+      setHasSavedState(true);
+      setLastSavedTime(now);
+      
+      // Show success message (only if not silent)
+      if (!silent) {
+        showAlert('System state saved successfully', 'success');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error saving system state:', error);
+      if (!silent) {
+        showAlert('Failed to save system state', 'error');
+      }
+      return false;
+    }
+  };
+  
+  // Load the saved system state from localStorage
+  const loadSystemState = () => {
+    try {
+      const savedState = localStorage.getItem(`iot_system_${systemId}`);
+      
+      if (savedState) {
+        const { nodes: savedNodes, edges: savedEdges, timestamp } = JSON.parse(savedState);
+        
+        if (savedNodes && savedNodes.length > 0) {
+          setNodes(savedNodes);
+          setEdges(savedEdges || []);
+          setHasSavedState(true);
+          
+          // Set the last saved time if available
+          if (timestamp) {
+            setLastSavedTime(new Date(timestamp));
+          }
+          
+          // Show success message
+          showAlert('Previous system state restored', 'info');
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading system state:', error);
+    }
+    
+    return false;
+  };
+  
+  // Clear the saved system state
+  const clearSystemState = () => {
+    try {
+      localStorage.removeItem(`iot_system_${systemId}`);
+      setHasSavedState(false);
+      setLastSavedTime(null);
+      showAlert('Saved state cleared', 'info');
+      
+      // Reset the current nodes/edges (optional)
+      if (window.confirm('Do you want to clear the current diagram as well?')) {
+        setNodes([]);
+        setEdges([]);
+      }
+    } catch (error) {
+      console.error('Error clearing system state:', error);
+    }
+  };
+
+  // Toggle auto-save functionality
+  const handleAutoSaveToggle = (event) => {
+    const newValue = event.target.checked;
+    setAutoSaveEnabled(newValue);
+    
+    // Save this preference to localStorage
+    try {
+      localStorage.setItem('iot_autosave_enabled', JSON.stringify(newValue));
+      showAlert(`Auto-save ${newValue ? 'enabled' : 'disabled'}`, 'info');
+    } catch (error) {
+      console.error('Failed to save auto-save preference:', error);
+    }
+  };
+
+  // Navigation handler with auto-save
+  const handleBack = () => {
+    // Save state before navigating away if auto-save is enabled
+    if (autoSaveEnabled && nodes.length > 0) {
+      saveSystemState();
+    }
+    navigate('/');
+  };
+
   // Handle dropping a component onto the canvas
   const onDrop = (event) => {
     event.preventDefault();
@@ -305,8 +414,8 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       setIsSystemValid(true);
       setAlreadyCompleted(true);
     }
-    
-    // Detect if it's a touch device
+
+    // Check if user is on a touch device
     const isTouchEnabled = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     setIsTouchDevice(isTouchEnabled);
     
@@ -315,11 +424,60 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       setTouchHelpOpen(true);
       sessionStorage.setItem('touchHelpShown', 'true');
     }
-  }, [progress, systemId]);
+    
+    // Check if there's a saved state and load it
+    if (!hasLoadedState) {
+      const loaded = loadSystemState();
+      setHasLoadedState(true);
+      
+      // Check if there's a saved state in localStorage even if loading failed
+      if (!loaded) {
+        const savedState = localStorage.getItem(`iot_system_${systemId}`);
+        setHasSavedState(!!savedState);
+      }
+    }
+    
+    // Load auto-save preference
+    try {
+      const savedAutoSavePreference = localStorage.getItem('iot_autosave_enabled');
+      if (savedAutoSavePreference !== null) {
+        setAutoSaveEnabled(JSON.parse(savedAutoSavePreference));
+      }
+    } catch (e) {
+      // If preference can't be loaded, keep default (true)
+      console.error('Failed to load auto-save preference:', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress.completedSystems, systemId]);
+  
+  // Auto-save system state when nodes or edges change (if enabled)
+  useEffect(() => {
+    if (autoSaveEnabled && hasLoadedState && nodes.length > 0) {
+      // Use debounce to avoid saving too frequently
+      const timer = setTimeout(() => {
+        // Save silently to avoid too many notifications
+        if (saveSystemState(true)) {
+          // Show a non-intrusive auto-save indicator
+          const smallToast = document.getElementById('auto-save-toast');
+          if (smallToast) {
+            smallToast.style.opacity = '1';
+            setTimeout(() => {
+              smallToast.style.opacity = '0';
+            }, 2000);
+          }
+        }
+      }, 3000); // Save 3 seconds after the last change
+      
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, autoSaveEnabled, hasLoadedState]);
+
+  // Removed duplicate effect that was causing issues
 
   // Alert and dialog handling functions are moved to the top (defined earlier)
   
-  // Handle congratulations dialog close
+  // Handle Congratulations dialog close
   const handleCongratsClose = () => {
     setCongratsOpen(false);
     navigate('/');
@@ -416,7 +574,8 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
         >
           {component.icon && (
             <Box sx={{ mr: 2, color: 'primary.main', fontSize: 30 }}>
-              {component.icon}
+              {component.icon ? React.isValidElement(component.icon) ? 
+                React.cloneElement(component.icon, { fontSize: "inherit" }) : null : null}
             </Box>
           )}
           <Box>
@@ -510,8 +669,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
         <Grid container alignItems="center" spacing={1}>
           <Grid item>
             <Button 
-              component={Link} 
-              to="/" 
+              onClick={handleBack}
               variant="contained" 
               color="inherit" 
               startIcon={<ArrowBackIcon />}
@@ -648,7 +806,8 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   {component.icon && (
                     <Box sx={{ mr: 1, color: 'primary.main' }}>
-                      {component.icon}
+                      {React.isValidElement(component.icon) ? 
+                        React.cloneElement(component.icon, { fontSize: "medium" }) : null}
                     </Box>
                   )}
                   <Box>
@@ -708,6 +867,144 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             snapToGrid={false} // Disable snap to grid for smoother connections
             deleteKeyCode={['Backspace', 'Delete']} // Allow both backspace and delete to remove edges
           >
+            {/* Auto-save indicator */}
+            <Box 
+              id="auto-save-toast" 
+              sx={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                backgroundColor: 'rgba(46, 125, 50, 0.9)',
+                color: 'white',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                opacity: 0,
+                transition: 'opacity 0.5s ease',
+                zIndex: 1000,
+                boxShadow: 1,
+                display: 'flex',
+                alignItems: 'center',
+                pointerEvents: 'none',
+              }}
+            >
+              <SaveIcon fontSize="small" sx={{ mr: 0.5, fontSize: '14px' }} /> Auto-saved
+            </Box>
+            
+          {/* Save/Load Controls */}
+            <Panel position="top-right" style={{ padding: 0, margin: 10 }}>
+              <ButtonGroup 
+                orientation={isMobile ? "horizontal" : "vertical"}
+                size="small" 
+                variant="contained" 
+                sx={{ 
+                  boxShadow: 2,
+                  backgroundColor: 'background.paper',
+                  borderRadius: 1,
+                  opacity: 0.9,
+                  '&:hover': {
+                    opacity: 1,
+                    boxShadow: 3,
+                  },
+                  '& .MuiButton-root': {
+                    py: 1,
+                    minWidth: isMobile ? '40px' : '50px',
+                  }
+                }}
+              >
+                <Tooltip title="Save current state" placement="left">
+                  <Button 
+                    onClick={saveSystemState} 
+                    color="primary"
+                    disabled={nodes.length === 0}
+                    sx={{ borderRadius: isMobile ? '4px 0 0 4px' : '4px 4px 0 0' }}
+                  >
+                    <SaveIcon fontSize="small" />
+                    {!isMobile && <Box component="span" sx={{ ml: 1 }}>Save</Box>}
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Restore saved state" placement="left">
+                  <Button 
+                    onClick={loadSystemState}
+                    color="secondary"
+                    disabled={!hasSavedState}
+                    sx={{ borderRadius: 0 }}
+                  >
+                    <RestoreIcon fontSize="small" />
+                    {!isMobile && <Box component="span" sx={{ ml: 1 }}>Load</Box>}
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Clear saved state" placement="left">
+                  <Button 
+                    onClick={clearSystemState}
+                    color="error"
+                    disabled={!hasSavedState}
+                    sx={{ borderRadius: isMobile ? '0 4px 4px 0' : '0 0 4px 4px' }}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                    {!isMobile && <Box component="span" sx={{ ml: 1 }}>Reset</Box>}
+                  </Button>
+                </Tooltip>
+              </ButtonGroup>
+              
+              {/* Auto-save toggle */}
+              <Box 
+                sx={{ 
+                  mt: 1, 
+                  bgcolor: 'background.paper', 
+                  p: 1, 
+                  borderRadius: 1, 
+                  boxShadow: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0.9,
+                  '&:hover': { opacity: 1 }
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Switch 
+                      size="small" 
+                      checked={autoSaveEnabled} 
+                      onChange={handleAutoSaveToggle}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Typography variant="caption" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
+                      Auto-save
+                    </Typography>
+                  }
+                  sx={{ m: 0 }}
+                />
+              </Box>
+              
+              {/* Last saved timestamp */}
+              {lastSavedTime && (
+                <Box sx={{
+                  mt: 1,
+                  textAlign: 'center',
+                  fontSize: '0.7rem',
+                  color: 'text.secondary',
+                  bgcolor: 'background.paper',
+                  p: 0.5,
+                  borderRadius: 1,
+                  boxShadow: 1,
+                  opacity: 0.7,
+                  '&:hover': { opacity: 0.9 }
+                }}>
+                  <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                    Last saved:
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 'medium' }}>
+                    {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Typography>
+                </Box>
+              )}
+            </Panel>
+            
             <Controls 
               showInteractive={!isMobile}
               position={isMobile ? "bottom-right" : "bottom-left"}

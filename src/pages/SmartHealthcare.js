@@ -20,6 +20,7 @@ const SmartHealthcare = () => {
       {components.length > 0 && rules.requiredComponents && (
         <IoTFlowEditor
           systemName="Smart Healthcare System"
+          systemId="healthcare"
           systemDescription={systemDescription}
           componentTypes={components}
           validationRules={rules}

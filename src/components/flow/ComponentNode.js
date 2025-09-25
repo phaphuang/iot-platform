@@ -140,21 +140,24 @@ const ComponentNode = ({ data, isConnectable, selected }) => {
         <CardContent sx={{ 
           p: isMobile ? 0.8 : 1.5, 
           textAlign: 'center',
-          '&:last-child': { pb: isMobile ? 1 : 2 }
         }}>
           {data.icon && (
             <Box sx={{ 
               fontSize: isMobile ? 30 : 40, 
               color: selected ? 'secondary.main' : 'primary.main', 
-              mb: isMobile ? 0.5 : 1,
-              animation: selected ? 'pulse 1.5s infinite' : 'none',
+              mb: 1,
+              animation: selected ? 'pulse 2s infinite' : 'none',
               '@keyframes pulse': {
-                '0%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.1)' },
+                '0%': { transform: 'scale(0.95)' },
+                '50%': { transform: 'scale(1.05)' },
                 '100%': { transform: 'scale(1)' },
               },
             }}>
-              {data.icon}
+              {data.icon ? React.isValidElement(data.icon) ? 
+                React.cloneElement(data.icon, { 
+                  fontSize: "inherit",
+                  sx: { fontSize: 'inherit' } 
+                }) : null : null}
             </Box>
           )}
           <Typography 
@@ -229,26 +232,12 @@ const ComponentNode = ({ data, isConnectable, selected }) => {
         onClose={handleInfoClose}
         aria-labelledby="component-info-dialog-title"
         maxWidth="xs"
-        fullWidth={isMobile}
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: 10,
-            width: isMobile ? '95%' : 'auto',
-          }
-        }}
+        fullWidth
       >
-        <DialogTitle 
-          id="component-info-dialog-title"
-          sx={{
-            bgcolor: 'primary.main',
-            color: 'white',
-            pb: 1,
-          }}
-        >
+        <DialogTitle id="component-info-dialog-title" sx={{ bgcolor: 'primary.main', color: 'white' }}>
           {data.label}
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
+        <DialogContent>
           <Box sx={{
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
@@ -259,18 +248,21 @@ const ComponentNode = ({ data, isConnectable, selected }) => {
               <Box sx={{ 
                 fontSize: 50, 
                 color: 'primary.main', 
-                mr: isMobile ? 0 : 2, 
-                mb: isMobile ? 1.5 : 0,
+                mr: isMobile ? 0 : 2,
+                mb: isMobile ? 2 : 0,
                 display: 'flex',
                 justifyContent: 'center'
               }}>
-                {data.icon}
+                {data.icon ? React.isValidElement(data.icon) ? 
+                  React.cloneElement(data.icon, { 
+                    fontSize: "inherit",
+                    sx: { fontSize: 'inherit' } 
+                  }) : null : null}
               </Box>
             )}
             <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
               <Typography variant="h6" sx={{ mb: 0.5 }}>{data.label}</Typography>
               <Typography 
-                variant="body2" 
                 color="text.secondary"
                 sx={{ 
                   display: 'inline-block',
