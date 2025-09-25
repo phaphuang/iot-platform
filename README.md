@@ -90,10 +90,38 @@ By completing these challenges, students will:
 ## Development
 
 The application is built with React and uses the following libraries:
-- react-flow-renderer: For the drag-and-drop interface
+- reactflow: For the drag-and-drop interface
 - Material-UI: For the user interface components
 - react-router-dom: For navigation between different systems
 - localforage: For local storage of progress
+
+## Deployment
+
+### Deploying to Vercel
+
+This project is configured for easy deployment to Vercel:
+
+1. Install Vercel CLI (if not already installed)
+   ```
+   npm install -g vercel
+   ```
+
+2. Login to Vercel from the command line
+   ```
+   vercel login
+   ```
+
+3. Deploy from the project directory
+   ```
+   vercel
+   ```
+
+4. For production deployment
+   ```
+   vercel --prod
+   ```
+
+Alternatively, you can connect your GitHub repository to Vercel for automatic deployments.
 
 ## License
 
