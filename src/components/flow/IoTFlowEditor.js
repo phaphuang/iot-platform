@@ -19,6 +19,8 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import CloseIcon from '@mui/icons-material/Close';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import { Link, useNavigate } from 'react-router-dom';
 import { useProgress } from '../../context/ProgressContext';
 
@@ -88,6 +90,11 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     const tipsState = localStorage.getItem('connection_tips_visible');
     return tipsState === null ? true : tipsState === 'true';
   }); // Toggle for connection tips visibility
+  
+  // Show pinch-to-zoom hint only if user hasn't seen it before
+  const [showPinchHint, setShowPinchHint] = useState(() => {
+    return localStorage.getItem('pinch_zoom_hint_shown') !== 'true';
+  });
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   
@@ -558,6 +565,13 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     // Check if user is on a touch device
     const isTouchEnabled = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     setIsTouchDevice(isTouchEnabled);
+    
+    // If this is a touch device, show the pinch hint
+    if (isTouchEnabled) {
+      // Check if the user has seen the hint before
+      const hintShown = localStorage.getItem('pinch_zoom_hint_shown') === 'true';
+      setShowPinchHint(!hintShown);
+    }
     
     // Show touch help dialog for touch devices on first render
     if (isTouchEnabled && !sessionStorage.getItem('touchHelpShown')) {
@@ -1050,8 +1064,13 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             nodesConnectable={true}
             zoomOnScroll={!isTouchDevice}
             zoomOnPinch={true}
+            pinchZoom={true}  // Enable pinch-zoom explicitly
+            multiSelectionKeyCode={null} // Disable multi-selection with keyboard to avoid conflicts
             panOnScroll={!isTouchDevice}
-            panOnDrag={!isMobile}
+            panOnDrag={!isMobile || isTouchDevice} // Allow drag to pan on touch devices
+            panOnScrollSpeed={0.8} // Slightly faster panning
+            panOnScrollMode={isTouchDevice ? 'free' : 'default'} // Use free mode for touch devices
+            zoomActivationKeyCode={null} // Don't require a key to zoom
             selectNodesOnDrag={false}
             // Connection line options with improved alignment
             connectionLineType="smoothstep" // Use smoothstep for better visual connections
@@ -1068,6 +1087,44 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             snapToGrid={false} // Disable snap to grid for smoother connections
             deleteKeyCode={['Backspace', 'Delete']} // Allow both backspace and delete to remove edges
           >
+            {/* Touch Zoom Hint Button - Appears briefly when a touch device is detected */}
+            {isTouchDevice && showPinchHint && (
+              <Box
+                onAnimationEnd={() => {
+                  // Mark the hint as shown so it doesn't appear again
+                  localStorage.setItem('pinch_zoom_hint_shown', 'true');
+                  setShowPinchHint(false);
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 70,
+                  right: 10,
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  color: 'primary.main',
+                  padding: '8px 12px',
+                  borderRadius: '30px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  boxShadow: 2,
+                  zIndex: 1000,
+                  animation: 'fadeInOut 5s forwards',
+                  '@keyframes fadeInOut': {
+                    '0%': { opacity: 0 },
+                    '10%': { opacity: 1 },
+                    '80%': { opacity: 1 },
+                    '100%': { opacity: 0, visibility: 'hidden' }
+                  },
+                }}
+              >
+                <Box sx={{ mr: 1, display: 'flex' }}>
+                  <ZoomInIcon fontSize="small" /> 
+                </Box>
+                <Box>Pinch to zoom</Box>
+              </Box>
+            )}
+
             {/* Auto-save indicator */}
             <Box 
               id="auto-save-toast" 
@@ -1447,8 +1504,23 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                 <Typography variant="body1" paragraph>
                   5. To remove a connection, double-tap on the connection line
                 </Typography>
-                <Typography variant="body1">
-                  6. Use two fingers to pinch and zoom the canvas
+                <Typography variant="body1" paragraph>
+                  6. To zoom in and out:
+                </Typography>
+                <Typography variant="body1" paragraph sx={{ pl: 3, display: 'flex', alignItems: 'center' }}>
+                  • <Box component="span" sx={{ display: 'flex', alignItems: 'center', mx: 1 }}>
+                      <ZoomInIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                    </Box> 
+                    Pinch outward with two fingers to zoom in
+                </Typography>
+                <Typography variant="body1" paragraph sx={{ pl: 3, display: 'flex', alignItems: 'center' }}>
+                  • <Box component="span" sx={{ display: 'flex', alignItems: 'center', mx: 1 }}>
+                      <ZoomOutIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                    </Box> 
+                    Pinch inward with two fingers to zoom out
+                </Typography>
+                <Typography variant="body1" paragraph sx={{ pl: 3 }}>
+                  • You can also drag with two fingers to pan around the canvas
                 </Typography>
               </Grid>
             </Grid>
