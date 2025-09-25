@@ -83,6 +83,11 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   const [touchHelpOpen, setTouchHelpOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false); // Track progress percentage
   const [descriptionVisible, setDescriptionVisible] = useState(true); // Toggle for system description visibility
+  const [connectionTipsVisible, setConnectionTipsVisible] = useState(() => {
+    // Check if the tips have been dismissed before
+    const tipsState = localStorage.getItem('connection_tips_visible');
+    return tipsState === null ? true : tipsState === 'true';
+  }); // Toggle for connection tips visibility
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   
@@ -1209,11 +1214,34 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                 flexDirection: isMobile ? 'row' : 'column',
                 gap: '5px',
                 padding: isMobile ? '5px' : '10px',
-                backgroundColor: isMobile ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 borderRadius: '8px',
                 margin: isMobile ? '5px' : '10px',
               }}
             />
+            
+            {/* Show Connection Tips button */}
+            {isTouchDevice && !connectionTipsVisible && (
+              <Panel position="bottom-right">
+                <Tooltip title="Show connection tips" placement="left">
+                  <IconButton 
+                    size="small" 
+                    color="primary" 
+                    onClick={() => {
+                      setConnectionTipsVisible(true);
+                      localStorage.setItem('connection_tips_visible', 'true');
+                    }}
+                    sx={{ 
+                      bgcolor: 'white',
+                      boxShadow: 1,
+                      '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.1)' }
+                    }}
+                  >
+                    <TouchAppIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Panel>
+            )}
             {!isMobile && <MiniMap zoomable pannable />}
             <Background
               variant="dots" 
@@ -1223,7 +1251,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             />
             
             {/* Connection Help Panel for touch devices */}
-            {isTouchDevice && (
+            {isTouchDevice && connectionTipsVisible && (
               <Panel position="top-center">
                 <Card 
                   sx={{ 
@@ -1244,13 +1272,27 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                       bgcolor: 'primary.main', 
                       color: 'white',
                       display: 'flex',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
                     }}
                   >
-                    <TouchAppIcon sx={{ mr: 1, fontSize: '1rem' }} />
-                    <Typography variant="caption" fontWeight="medium">
-                      Connection Tips
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TouchAppIcon sx={{ mr: 1, fontSize: '1rem' }} />
+                      <Typography variant="caption" fontWeight="medium">
+                        Connection Tips
+                      </Typography>
+                    </Box>
+                    <IconButton 
+                      size="small" 
+                      sx={{ color: 'white', p: 0.2, ml: 1 }}
+                      onClick={() => {
+                        setConnectionTipsVisible(false);
+                        localStorage.setItem('connection_tips_visible', 'false');
+                      }}
+                      aria-label="close connection tips"
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
                   </Box>
                   <Box sx={{ p: 1 }}>
                     <Typography variant="caption" display="block">
