@@ -43,36 +43,64 @@ const ComponentNode = ({ data, isConnectable, selected }) => {
         }}
         onTouchStart={onTouchStart}
       >
-        {/* Add a larger invisible touch area for the top handle on mobile */}
-        {isTouchDevice && (
-          <Handle
-            type="target"
-            position={Position.Top}
-            isConnectable={isConnectable}
-            style={{
-              opacity: 0,
-              width: 40,
-              height: 40,
-              top: -20,
-              transform: 'translate(-50%, 0)',
-              zIndex: 1
-            }}
-          />
-        )}
+        {/* Single visible handle for targets with precise positioning */}
         <Handle
           type="target"
           position={Position.Top}
           isConnectable={isConnectable}
           style={{
             background: selected ? '#ff9800' : '#1976d2',
-            width: isMobile ? 14 : 10,
-            height: isMobile ? 14 : 10,
-            top: -7,
-            border: '2px solid white',
-            boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)',
-            zIndex: 2
+            width: isMobile ? 20 : 16,
+            height: isMobile ? 20 : 16,
+            top: -10,
+            border: '3px solid white',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+            zIndex: 2,
+            cursor: 'crosshair',
+            animation: selected ? 'pulseConnection 2s infinite' : 'none',
+            '@keyframes pulseConnection': {
+              '0%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.7)' },
+              '70%': { boxShadow: '0 0 0 10px rgba(25, 118, 210, 0)' },
+              '100%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0)' },
+            },
+            // Make the connection area larger but keep it centered correctly
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: isMobile || isTouchDevice ? 40 : 30,
+              height: isMobile || isTouchDevice ? 40 : 30,
+              backgroundColor: 'transparent',
+              borderRadius: '50%',
+            }
           }}
         />
+        
+        {/* Connection indicator */}
+        <Box 
+          sx={{
+            position: 'absolute',
+            top: -35,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bgcolor: 'background.paper',
+            color: 'primary.main',
+            fontSize: isMobile ? '0.6rem' : '0.7rem',
+            fontWeight: 'bold',
+            padding: '2px 8px',
+            borderRadius: 10,
+            opacity: selected ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: 'none',
+            boxShadow: 1,
+            border: '1px solid',
+            borderColor: 'primary.main',
+          }}
+        >
+          Connect
+        </Box>
         
         <Box 
           sx={{ 
@@ -138,36 +166,59 @@ const ComponentNode = ({ data, isConnectable, selected }) => {
           </Typography>
         </CardContent>
         
-        {/* Add a larger invisible touch area for the bottom handle on mobile */}
-        {isTouchDevice && (
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            isConnectable={isConnectable}
-            style={{
-              opacity: 0,
-              width: 40,
-              height: 40,
-              bottom: -20,
-              transform: 'translate(-50%, 0)',
-              zIndex: 1
-            }}
-          />
-        )}
+        {/* Single visible handle for sources with precise positioning */}
         <Handle
           type="source"
           position={Position.Bottom}
           isConnectable={isConnectable}
           style={{
             background: selected ? '#ff9800' : '#1976d2',
-            width: isMobile ? 14 : 10,
-            height: isMobile ? 14 : 10,
-            bottom: -7,
-            border: '2px solid white',
-            boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)',
-            zIndex: 2
+            width: isMobile ? 20 : 16, 
+            height: isMobile ? 20 : 16,
+            bottom: -10,
+            border: '3px solid white',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+            zIndex: 2,
+            cursor: 'crosshair',
+            animation: selected ? 'pulseConnection 2s infinite' : 'none',
+            // Make the connection area larger but keep it centered correctly
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: isMobile || isTouchDevice ? 40 : 30,
+              height: isMobile || isTouchDevice ? 40 : 30,
+              backgroundColor: 'transparent',
+              borderRadius: '50%',
+            }
           }}
         />
+        
+        {/* Connection indicator */}
+        <Box 
+          sx={{
+            position: 'absolute',
+            bottom: -35,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bgcolor: 'background.paper',
+            color: 'primary.main',
+            fontSize: isMobile ? '0.6rem' : '0.7rem',
+            fontWeight: 'bold',
+            padding: '2px 8px',
+            borderRadius: 10,
+            opacity: selected ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: 'none',
+            boxShadow: 1,
+            border: '1px solid',
+            borderColor: 'primary.main',
+          }}
+        >
+          Connect
+        </Box>
         
         {/* Touch ripple effect */}
         {isTouchDevice && <TouchRipple ref={rippleRef} center />}

@@ -9,7 +9,7 @@ import ReactFlow, {
   Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Box, Paper, Typography, Snackbar, Alert, Button, Grid, Card, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fade, Zoom, Tooltip, LinearProgress, CircularProgress, useMediaQuery, Drawer, IconButton, SwipeableDrawer, useTheme, Divider } from '@mui/material';
+import { Box, Paper, Typography, Snackbar, Alert, Button, Grid, Card, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fade, Zoom, Tooltip, LinearProgress, useMediaQuery, IconButton, SwipeableDrawer, useTheme, Divider } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MenuIcon from '@mui/icons-material/Menu';
 import PaletteIcon from '@mui/icons-material/Palette';
@@ -54,13 +54,39 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   
-  // Handle connection between nodes
+  // Show alert message function - defined before it's used in callbacks
+  const showAlert = (message, severity) => {
+    setAlertMessage(message);
+    setAlertSeverity(severity);
+    setAlertOpen(true);
+    
+    // For success alerts, make them more prominent with a special animation
+    if (severity === 'success' && message.includes('correctly connected')) {
+      // If we're already showing a success alert, wait for it to close
+      setTimeout(() => {
+        setCongratsOpen(true);
+      }, 1500);
+    }
+  };
+
+  // Handle alert close
+  const handleAlertClose = () => {
+    setAlertOpen(false);
+  };
+  
+  // Handle connection between nodes with improved cursor alignment
   const onConnect = useCallback((params) => {
     // Check if the connection is valid based on source and target types
     const sourceNode = nodes.find(node => node.id === params.source);
     const targetNode = nodes.find(node => node.id === params.target);
     
+    // Get the exact connection point positions for source and target
+    // This helps with cursor alignment issues
+    const sourcePosition = params.sourceHandle ? params.sourceHandle.split('-')[0] : 'bottom';
+    const targetPosition = params.targetHandle ? params.targetHandle.split('-')[0] : 'top';
+    
     if (sourceNode && targetNode) {
+      // Check if connection is valid
       const isValidConnection = checkConnectionValidity(sourceNode.data.type, targetNode.data.type);
       
       // Always add the connection but with different styling based on validity
@@ -70,27 +96,61 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
         data: { valid: isValidConnection },
         style: { 
           stroke: isValidConnection ? '#4caf50' : '#f44336', // Green for valid, Red for invalid
-          strokeWidth: isValidConnection ? 3 : 2,
+          strokeWidth: isValidConnection ? (isTouchDevice ? 5 : 4) : (isTouchDevice ? 4 : 3),
           strokeDasharray: isValidConnection ? 'none' : '5,5', // Solid for valid, dashed for invalid
+          transition: 'stroke-width 0.3s ease',
         },
-        labelStyle: { fill: isValidConnection ? '#4caf50' : '#f44336', fontWeight: 'bold' },
+        labelStyle: { 
+          fill: isValidConnection ? '#4caf50' : '#f44336', 
+          fontWeight: 'bold',
+          fontSize: isMobile ? 12 : 14,
+          textShadow: '0px 0px 2px white',
+        },
         label: isValidConnection ? 'Connected' : 'Invalid',
         markerEnd: {
           type: 'arrowclosed',
           color: isValidConnection ? '#4caf50' : '#f44336',
-          width: 20,
-          height: 20,
-        }
+          width: isTouchDevice ? 25 : 20,
+          height: isTouchDevice ? 25 : 20,
+        },
+        // Add animated particles for valid connections to make them more noticeable
+        // This is only visible in the UI as a special React Flow effect
+        pathOptions: isValidConnection ? {
+          borderRadius: 20,
+        } : undefined,
       }, eds));
       
       if (isValidConnection) {
+        // Show a success message to provide immediate feedback
+        showAlert(`Successfully connected ${sourceNode.data.label} to ${targetNode.data.label}`, 'success');
+        
+        // Vibrate the device for tactile feedback on mobile
+        if (isTouchDevice && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate(100);
+          } catch (e) {
+            // Ignore if vibration is not supported or permitted
+          }
+        }
+        
         // Check if the overall system is valid after adding the connection
-        setTimeout(() => validateSystem(), 100);
+        setTimeout(() => validateSystem(), 300);
       } else {
+        // Show error message for invalid connection
         showAlert(`Invalid connection: ${sourceNode.data.label} cannot connect to ${targetNode.data.label}`, 'error');
+        
+        // Vibrate the device with a different pattern for error feedback
+        if (isTouchDevice && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate([50, 100, 50]);
+          } catch (e) {
+            // Ignore if vibration is not supported or permitted
+          }
+        }
       }
     }
-  }, [nodes, edges]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes]);
 
   // Function to check if a connection between two component types is valid
   const checkConnectionValidity = (sourceType, targetType) => {
@@ -256,25 +316,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     }
   }, [progress, systemId]);
 
-  // Show alert message
-  const showAlert = (message, severity) => {
-    setAlertMessage(message);
-    setAlertSeverity(severity);
-    setAlertOpen(true);
-    
-    // For success alerts, make them more prominent with a special animation
-    if (severity === 'success' && message.includes('correctly connected')) {
-      // If we're already showing a success alert, wait for it to close
-      setTimeout(() => {
-        setCongratsOpen(true);
-      }, 1500);
-    }
-  };
-
-  // Handle alert close
-  const handleAlertClose = () => {
-    setAlertOpen(false);
-  };
+  // Alert and dialog handling functions are moved to the top (defined earlier)
   
   // Handle congratulations dialog close
   const handleCongratsClose = () => {
@@ -292,11 +334,26 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     setTouchHelpOpen(false);
   };
 
-  // Create flow options with touch device adjustments
+  // Create flow options with touch device adjustments and precise cursor alignment
   const defaultEdgeOptions = useMemo(() => ({
-    style: { strokeWidth: isTouchDevice ? 3 : 2 },
-    markerEnd: { type: 'arrowclosed' },
+    style: { 
+      strokeWidth: isTouchDevice ? 4 : 3,
+      stroke: '#1976d2',
+    },
+    markerEnd: { 
+      type: 'arrowclosed',
+      width: isTouchDevice ? 25 : 20,
+      height: isTouchDevice ? 25 : 20,
+      color: '#1976d2'
+    },
+    animated: true,
     zIndex: 5, // Keep edges on top
+    // These settings help with alignment of the connection lines
+    type: 'smoothstep', // Use smoothstep for better visual connections
+    pathOptions: {
+      offset: 8, // Offset to align better with the center of connection points
+      borderRadius: 8,
+    },
   }), [isTouchDevice]);
 
   // Component drawer content for mobile
@@ -372,6 +429,73 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     </Box>
   );
 
+  // CSS animation for connection lines - globally defined
+  React.useEffect(() => {
+    // Create and inject a style element for the flowDash animation
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      @keyframes flowDash {
+        to {
+          stroke-dashoffset: -10;
+        }
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+      }
+      
+      .react-flow__edge-path {
+        transition: stroke 0.3s, stroke-width 0.3s;
+      }
+      
+      .react-flow__handle {
+        transition: all 0.2s ease;
+        cursor: crosshair !important;
+      }
+      
+      .react-flow__handle:hover {
+        transform: scale(1.5);
+        box-shadow: 0 0 8px 2px rgba(25, 118, 210, 0.7);
+      }
+      
+      /* Fix cursor offset for connection interactions */
+      .react-flow__pane {
+        cursor: default;
+      }
+      
+      .react-flow__edge.connecting {
+        pointer-events: none;
+      }
+      
+      .react-flow__connection-line path {
+        stroke-dasharray: 5, 5;
+        animation: flowDash 0.5s linear infinite;
+        stroke-linecap: round;
+      }
+      
+      /* Make selected nodes more visible */
+      .react-flow__node.selected {
+        box-shadow: 0 0 0 2px #ff9800 !important;
+      }
+      
+      /* Improve connection experience */
+      .react-flow__handle.connecting {
+        animation: bounce 0.8s infinite;
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+  
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Header bar */}
@@ -554,7 +678,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
-            snapToGrid={isTouchDevice}
+            // Connection-friendly settings
             minZoom={0.2}
             maxZoom={4}
             fitView
@@ -568,6 +692,20 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             panOnScroll={!isTouchDevice}
             panOnDrag={!isMobile}
             selectNodesOnDrag={false}
+            // Connection line options with improved alignment
+            connectionLineType="smoothstep" // Use smoothstep for better visual connections
+            connectionLineStyle={{
+              stroke: '#2196f3', // Blue connection line
+              strokeWidth: isTouchDevice ? 5 : 3, // Thicker for touch
+              strokeOpacity: 0.8,
+              strokeDasharray: '5,5', // Dashed connection line
+            }}
+            // Custom connection pointer settings to improve alignment
+            connectionMode="loose" // More forgiving connection mode
+            connectionRadius={isTouchDevice ? 40 : 25} // Larger connection radius
+            // Make the connection process smoother
+            snapToGrid={false} // Disable snap to grid for smoother connections
+            deleteKeyCode={['Backspace', 'Delete']} // Allow both backspace and delete to remove edges
           >
             <Controls 
               showInteractive={!isMobile}
@@ -589,6 +727,52 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
               size={isMobile ? 0.8 : 1} 
               color="#aaaaaa"
             />
+            
+            {/* Connection Help Panel for touch devices */}
+            {isTouchDevice && (
+              <Panel position="top-center">
+                <Card 
+                  sx={{ 
+                    mt: 1,
+                    mb: 1, 
+                    maxWidth: '90%',
+                    opacity: 0.9,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      opacity: 1,
+                      transform: 'translateY(5px)'
+                    }
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      p: 1, 
+                      bgcolor: 'primary.main', 
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <TouchAppIcon sx={{ mr: 1, fontSize: '1rem' }} />
+                    <Typography variant="caption" fontWeight="medium">
+                      Connection Tips
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 1 }}>
+                    <Typography variant="caption" display="block">
+                      • Tap on the <b>large blue dots</b> to start a connection
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      • Drag to another component's connection point
+                    </Typography>
+                    <Typography variant="caption" display="block" sx={{ color: 'success.main', fontWeight: 'medium' }}>
+                      • Green connections are valid, red are invalid
+                    </Typography>
+                  </Box>
+                </Card>
+              </Panel>
+            )}
+            
             <Panel position="bottom-center">
               <Card 
                 sx={{ 
