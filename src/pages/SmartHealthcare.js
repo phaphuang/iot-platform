@@ -13,7 +13,7 @@ const SmartHealthcare = () => {
     setRules(validationRules.healthcare);
   }, []);
   
-  const systemDescription = "Design a patient monitoring system that collects vital signs data using wearable devices. Connect heart rate and blood pressure monitors to a patient wearable, which transmits data through a gateway to a cloud server. A dashboard displays patient health information and can control the medication dispenser when needed.";
+  const systemDescription = "Design a patient monitoring system that collects vital signs data using wearable devices. Connect heart rate and blood pressure monitors to a patient wearable, sends data from device to gateway via bluetooth protocol, transmits data to cloud server via MQTT protocol. A dashboard displays patient health information and can control the medication dispenser when needed.";
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>

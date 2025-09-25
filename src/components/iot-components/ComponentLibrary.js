@@ -233,16 +233,21 @@ export const validationRules = {
     requiredComponents: [
       'heart_rate_monitor', 
       'blood_pressure_monitor', 
-      'patient_wearable', 
-      'gateway', 
+      'patient_wearable',
+      'bluetooth',
+      'gateway',
+      'mqtt',
       'cloud_server', 
-      'dashboard'
+      'dashboard',
+      'medication_dispenser'
     ],
     requiredConnections: [
       { source: 'heart_rate_monitor', target: 'patient_wearable' },
       { source: 'blood_pressure_monitor', target: 'patient_wearable' },
-      { source: 'patient_wearable', target: 'gateway' },
-      { source: 'gateway', target: 'cloud_server' },
+      { source: 'patient_wearable', target: 'bluetooth' },
+      { source: 'bluetooth', target: 'gateway' },
+      { source: 'gateway', target: 'mqtt' },
+      { source: 'mqtt', target: 'cloud_server' },
       { source: 'cloud_server', target: 'dashboard' },
       { source: 'dashboard', target: 'medication_dispenser' }
     ],
@@ -250,10 +255,9 @@ export const validationRules = {
       { source: 'heart_rate_monitor', targets: ['patient_wearable'] },
       { source: 'blood_pressure_monitor', targets: ['patient_wearable'] },
       { source: 'temperature_sensor', targets: ['patient_wearable'] },
-      { source: 'patient_wearable', targets: ['gateway', 'wifi', 'bluetooth'] },
-      { source: 'wifi', targets: ['gateway'] },
+      { source: 'patient_wearable', targets: ['bluetooth', 'wifi', 'lorawan'] },
       { source: 'bluetooth', targets: ['gateway'] },
-      { source: 'gateway', targets: ['cloud_server', 'mqtt'] },
+      { source: 'gateway', targets: ['mqtt'] },
       { source: 'mqtt', targets: ['cloud_server'] },
       { source: 'cloud_server', targets: ['dashboard'] },
       { source: 'dashboard', targets: ['medication_dispenser'] }
@@ -261,32 +265,39 @@ export const validationRules = {
   },
   manufacturing: {
     requiredComponents: [
-      'machine_sensor', 
+      'machine_sensor',
+      'inventory_tracker', 
       'quality_camera', 
-      'production_line', 
+      'lorawan',
       'microcontroller', 
       'gateway', 
+      'mqtt',
       'cloud_server', 
-      'dashboard'
+      'dashboard',
+      'robotic_arm',
+      'production_line',
     ],
     requiredConnections: [
       { source: 'machine_sensor', target: 'microcontroller' },
       { source: 'quality_camera', target: 'microcontroller' },
-      { source: 'microcontroller', target: 'gateway' },
-      { source: 'gateway', target: 'cloud_server' },
+      { source: 'inventory_tracker', target: 'microcontroller' },
+      { source: 'microcontroller', target: 'lorawan' },
+      { source: 'gateway', target: 'mqtt' },
+      { source: 'mqtt', target: 'cloud_server' },
       { source: 'cloud_server', target: 'dashboard' },
-      { source: 'dashboard', target: 'robotic_arm' }
+      { source: 'dashboard', target: 'robotic_arm' },
+      { source: 'robotic_arm', target: 'production_line' },
     ],
     connections: [
       { source: 'machine_sensor', targets: ['microcontroller'] },
       { source: 'quality_camera', targets: ['microcontroller'] },
       { source: 'inventory_tracker', targets: ['microcontroller'] },
-      { source: 'microcontroller', targets: ['gateway', 'wifi'] },
-      { source: 'wifi', targets: ['gateway'] },
+      { source: 'microcontroller', targets: ['lorawan', 'bluetooth', 'wifi'] },
+      { source: 'bluetooth', targets: ['gateway'] },
       { source: 'gateway', targets: ['cloud_server', 'mqtt'] },
       { source: 'mqtt', targets: ['cloud_server'] },
       { source: 'cloud_server', targets: ['dashboard'] },
-      { source: 'dashboard', targets: ['robotic_arm', 'production_line'] },
+      { source: 'dashboard', targets: ['robotic_arm'] },
       { source: 'robotic_arm', targets: ['production_line'] }
     ]
   }

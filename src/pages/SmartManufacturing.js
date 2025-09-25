@@ -13,7 +13,7 @@ const SmartManufacturing = () => {
     setRules(validationRules.manufacturing);
   }, []);
   
-  const systemDescription = "Create a smart manufacturing system that monitors production lines using machine sensors and quality control cameras. Connect these sensors through a microcontroller and gateway to a cloud server. The dashboard displays real-time production data and can control robotic arms to optimize the manufacturing process.";
+  const systemDescription = "Create a smart manufacturing system that monitors production lines using machine sensors, quality control cameras, and inventory tracker. Connect these sensors through a microcontroller via LoRaWan protocol and gateway to a cloud server using MQTT protocol. The dashboard displays real-time production data and can control robotic arms to optimize the manufacturing process.";
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
