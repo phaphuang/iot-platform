@@ -227,7 +227,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     
     // Show progress hint if we've made significant progress but aren't done yet
     if (!allRequiredConnectionsExist && validConnectionsCount > 0 && 
-        (connectionsProgress % 10 === 0 || validConnectionsCount === requiredConnections.length - 1)) {
+        (connectionsProgress % 5 === 0 || validConnectionsCount === requiredConnections.length - 1)) {
       showAlert(`You've connected ${validConnectionsCount} of ${requiredConnections.length} required components. Keep going!`, 'info');
     }
     
@@ -274,6 +274,8 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
         nodes,
         edges,
         timestamp,
+        progress: connectionProgress,
+        isValid: isSystemValid,
       };
       
       localStorage.setItem(`iot_system_${systemId}`, JSON.stringify(systemState));
@@ -300,12 +302,27 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       const savedState = localStorage.getItem(`iot_system_${systemId}`);
       
       if (savedState) {
-        const { nodes: savedNodes, edges: savedEdges, timestamp } = JSON.parse(savedState);
+        const { 
+          nodes: savedNodes, 
+          edges: savedEdges, 
+          timestamp,
+          progress: savedProgress,
+          isValid: savedIsValid 
+        } = JSON.parse(savedState);
         
         if (savedNodes && savedNodes.length > 0) {
           setNodes(savedNodes);
           setEdges(savedEdges || []);
           setHasSavedState(true);
+          
+          // Restore progress and validation status
+          if (typeof savedProgress === 'number') {
+            setConnectionProgress(savedProgress);
+          }
+          
+          if (typeof savedIsValid === 'boolean') {
+            setIsSystemValid(savedIsValid);
+          }
           
           // Set the last saved time if available
           if (timestamp) {
@@ -314,6 +331,9 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
           
           // Show success message
           showAlert('Previous system state restored', 'info');
+          
+          // Validate system to update progress
+          setTimeout(() => validateSystem(), 300);
           return true;
         }
       }
@@ -473,7 +493,13 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges, autoSaveEnabled, hasLoadedState]);
 
-  // Removed duplicate effect that was causing issues
+  // Recalculate progress when nodes or edges change
+  useEffect(() => {
+    if (hasLoadedState && nodes.length > 0) {
+      validateSystem();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, hasLoadedState]);
 
   // Alert and dialog handling functions are moved to the top (defined earlier)
   
