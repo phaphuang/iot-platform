@@ -330,6 +330,38 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   const onDragEnd = () => {
     setIsDragging(false);
   };
+  
+  // Handle double-click on edge to remove connection
+  const onEdgeDoubleClick = useCallback((event, edge) => {
+    event.preventDefault();
+    
+    // Find the source and target nodes for this edge
+    const sourceNode = nodes.find(node => node.id === edge.source);
+    const targetNode = nodes.find(node => node.id === edge.target);
+    
+    if (sourceNode && targetNode) {
+      // Get descriptive names for log and alert
+      const sourceName = sourceNode.data.label;
+      const targetName = targetNode.data.label;
+      
+      console.log(`Removing connection: ${sourceName} to ${targetName}`);
+      
+      // Remove the edge
+      setEdges((eds) => eds.filter(e => e.id !== edge.id));
+      
+      // Show feedback
+      showAlert(`Removed connection from ${sourceName} to ${targetName}`, 'info');
+      
+      // Vibrate device for tactile feedback on mobile
+      if (isTouchDevice && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate([40, 60, 40]);
+        } catch (e) {
+          // Ignore if vibration is not supported
+        }
+      }
+    }
+  }, [nodes, setEdges, showAlert, isTouchDevice]);
 
   // Save the current system state to localStorage
   const saveSystemState = (silent = false) => {
@@ -749,6 +781,13 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
         transition: stroke 0.3s, stroke-width 0.3s;
       }
       
+      /* Edge hover effect to indicate it can be double-clicked */
+      .react-flow__edge:hover .react-flow__edge-path {
+        stroke-width: 6px !important;
+        cursor: pointer;
+        filter: drop-shadow(0 0 2px rgba(33, 150, 243, 0.5));
+      }
+      
       .react-flow__handle {
         transition: all 0.2s ease;
         cursor: crosshair !important;
@@ -943,6 +982,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             <Typography variant="h6" gutterBottom>Components</Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Drag and drop components to the canvas and connect them to create your IoT system.
+              Double-click on any connection line to remove it.
             </Typography>
             
             {componentTypes.map((component) => (
@@ -988,6 +1028,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onEdgeDoubleClick={onEdgeDoubleClick}
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
@@ -1218,6 +1259,9 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                     <Typography variant="caption" display="block">
                       • Drag to another component's connection point
                     </Typography>
+                    <Typography variant="caption" display="block">
+                      • <b>Double-tap</b> on any line to remove a connection
+                    </Typography>
                     <Typography variant="caption" display="block" sx={{ color: 'success.main', fontWeight: 'medium' }}>
                       • Green connections are valid, red are invalid
                     </Typography>
@@ -1344,8 +1388,11 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                 <Typography variant="body1" paragraph sx={{ pl: 3 }}>
                   • Drag from its connection point to another component
                 </Typography>
+                <Typography variant="body1" paragraph>
+                  5. To remove a connection, double-tap on the connection line
+                </Typography>
                 <Typography variant="body1">
-                  5. Use two fingers to pinch and zoom the canvas
+                  6. Use two fingers to pinch and zoom the canvas
                 </Typography>
               </Grid>
             </Grid>
