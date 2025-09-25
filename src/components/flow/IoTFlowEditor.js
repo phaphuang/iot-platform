@@ -1316,7 +1316,8 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
               <Card 
                 sx={{ 
                   mb: 2,
-                  maxWidth: isMobile ? '95%' : '80%', 
+                  width: isMobile ? '95%' : '100%',
+                  maxWidth: isMobile ? 'none' : '1200px', 
                   opacity: 0.95,
                   borderRadius: 2,
                   boxShadow: 3,
@@ -1361,8 +1362,16 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                       }}
                     >
                       <Typography 
-                        variant={isMobile ? "caption" : "body2"} 
-                        sx={{ fontSize: isMobile ? '0.7rem' : 'inherit' }}
+                        variant={isMobile ? "body2" : "body1"} 
+                        sx={{ 
+                          fontSize: isMobile ? '0.85rem' : '1rem',
+                          lineHeight: 1.6,
+                          textAlign: 'justify',
+                          maxWidth: '100%',
+                          mx: 'auto',
+                          px: { xs: 1, sm: 3, md: 4 },
+                          py: 1
+                        }}
                       >
                         {systemDescription}
                       </Typography>
