@@ -51,6 +51,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [touchHelpOpen, setTouchHelpOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false); // Track progress percentage
+  const [descriptionVisible, setDescriptionVisible] = useState(true); // Toggle for system description visibility
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   
@@ -784,12 +785,51 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                 }}
               >
                 <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
-                  <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
-                    {systemName}
+                  <Typography 
+                    variant={isMobile ? "subtitle1" : "h6"} 
+                    gutterBottom
+                    onDoubleClick={() => setDescriptionVisible(!descriptionVisible)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    {systemName} {!descriptionVisible && 
+                      <Typography 
+                        component="span" 
+                        variant="caption" 
+                        color="primary.main"
+                        sx={{ ml: 1, fontStyle: 'italic' }}
+                      >
+                        (double-click to show details)
+                      </Typography>
+                    }
                   </Typography>
-                  <Typography variant={isMobile ? "caption" : "body2"} sx={{ fontSize: isMobile ? '0.7rem' : 'inherit' }}>
-                    {systemDescription}
-                  </Typography>
+                  {descriptionVisible && (
+                    <Box 
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setDescriptionVisible(false);
+                      }}
+                      sx={{ 
+                        cursor: 'pointer',
+                        position: 'relative',
+                        '&:hover::after': {
+                          content: '"Double-click to hide"',
+                          position: 'absolute',
+                          right: 0,
+                          bottom: -16,
+                          fontSize: '10px',
+                          color: 'primary.main',
+                          fontStyle: 'italic',
+                        }
+                      }}
+                    >
+                      <Typography 
+                        variant={isMobile ? "caption" : "body2"} 
+                        sx={{ fontSize: isMobile ? '0.7rem' : 'inherit' }}
+                      >
+                        {systemDescription}
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Panel>
