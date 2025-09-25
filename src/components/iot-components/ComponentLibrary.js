@@ -208,7 +208,7 @@ export const validationRules = {
     requiredConnections: [
       { source: 'soil_sensor', target: 'microcontroller' },
       { source: 'temp_sensor', target: 'microcontroller' },
-      { source: 'microcontroller', targets: ['wifi', 'lorawan', 'bluetooth'] },
+      { source: 'microcontroller', target: 'wifi' },
       { source: 'wifi', target: 'gateway' },
       { source: 'gateway', target: 'mqtt' },
       { source: 'mqtt', target: 'cloud_server' },
