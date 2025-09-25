@@ -1312,18 +1312,19 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
               </Panel>
             )}
             
-            <Panel position="bottom-center">
+            <Panel position="bottom-center" style={{ width: '80%', maxWidth: '100vw' }}>
               <Card 
                 sx={{ 
                   mb: 2,
                   width: isMobile ? '95%' : '100%',
-                  maxWidth: isMobile ? 'none' : '1200px', 
+                  maxWidth: isMobile ? 'none' : '1600px', 
                   opacity: 0.95,
                   borderRadius: 2,
                   boxShadow: 3,
+                  mx: 'auto' // Center the card horizontally
                 }}
               >
-                <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <CardContent sx={{ p: isMobile ? 1.5 : 2, maxWidth: '100%' }}>
                   <Typography 
                     variant={isMobile ? "subtitle1" : "h6"} 
                     gutterBottom
@@ -1364,13 +1365,17 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                       <Typography 
                         variant={isMobile ? "body2" : "body1"} 
                         sx={{ 
-                          fontSize: isMobile ? '0.85rem' : '1rem',
-                          lineHeight: 1.6,
+                          fontSize: isMobile ? '0.85rem' : '1.05rem',
+                          lineHeight: 1.7,
                           textAlign: 'justify',
                           maxWidth: '100%',
                           mx: 'auto',
-                          px: { xs: 1, sm: 3, md: 4 },
-                          py: 1
+                          px: { xs: 1, sm: 2, md: 4, lg: 6 }, // More responsive padding based on screen size
+                          py: 1.5, // Slightly increased vertical padding
+                          letterSpacing: '0.01em', // Slightly improved letter spacing for readability
+                          columnCount: { xs: 1, md: 2 }, // Split into two columns on larger screens
+                          columnGap: '2rem', // Gap between columns
+                          '& strong': { fontWeight: 600 } // Make any bold text stand out better
                         }}
                       >
                         {systemDescription}
