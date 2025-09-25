@@ -1,70 +1,104 @@
-# Getting Started with Create React App
+# IoT Platform Educational Lab
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Overview
 
-## Available Scripts
+The IoT Platform Educational Lab is an interactive learning tool designed for university students to understand IoT (Internet of Things) concepts through practical, hands-on exercises. The platform allows students to design and configure different smart systems by connecting various IoT components using a drag-and-drop interface.
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Drag-and-drop Interface**: Easily connect IoT components such as sensors, gateways, and servers by dragging them onto the canvas and connecting them with lines.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Three Smart System Challenges**: 
+  - Smart Farming: Create an agricultural monitoring and control system
+  - Smart Healthcare: Build a patient monitoring system
+  - Smart Manufacturing: Design an industrial IoT system
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Real-time Validation**: Receive immediate feedback on your IoT system configuration
 
-### `npm test`
+- **Progress Tracking**: Track completion of challenges and overall score
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Getting Started
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Clone the repository
+   ```
+   git clone <repository-url>
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Navigate to the project directory
+   ```
+   cd iot-platform
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. Install dependencies
+   ```
+   npm install
+   ```
 
-### `npm run eject`
+4. Start the development server
+   ```
+   npm start
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+5. Open [http://localhost:3000](http://localhost:3000) to view the application in your browser
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## How to Use
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### For Students
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. **Home Screen**: From the home screen, select one of the three smart system challenges to begin.
 
-## Learn More
+2. **Building Your System**: 
+   - Drag components from the left sidebar onto the canvas
+   - Connect components by clicking and dragging from one component's connection point to another's
+   - The system will validate your connections in real-time
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+3. **Completing Challenges**:
+   - When your system is correctly configured, you'll receive a success notification
+   - Your progress will be automatically saved
+   - Return to the home screen to see your updated progress
+   - Complete all three challenges to achieve a perfect score
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Component Types
 
-### Code Splitting
+#### Common Components
+- Microcontroller: Processing unit that controls the IoT device
+- IoT Gateway: Connects IoT devices to the cloud or local network
+- Cloud Server: Remote server for data processing and storage
+- Dashboard: User interface for monitoring and control
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+#### Communication Protocols
+- WiFi: Wireless communication protocol
+- Bluetooth: Short-range wireless communication protocol
+- LoRaWAN: Long Range Wide Area Network protocol
+- MQTT: Lightweight messaging protocol for IoT
 
-### Analyzing the Bundle Size
+#### System-Specific Components
+Each challenge has unique components relevant to its domain (farming, healthcare, or manufacturing).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Learning Objectives
 
-### Making a Progressive Web App
+By completing these challenges, students will:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+1. Understand the components of an IoT system and their relationships
+2. Learn about different communication protocols in IoT
+3. See real-world applications of IoT in various domains
+4. Practice system design and integration skills
+5. Develop problem-solving abilities through practical application
 
-### Advanced Configuration
+## Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+The application is built with React and uses the following libraries:
+- react-flow-renderer: For the drag-and-drop interface
+- Material-UI: For the user interface components
+- react-router-dom: For navigation between different systems
+- localforage: For local storage of progress
 
-### Deployment
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+This project is licensed for educational use.
 
-### `npm run build` fails to minify
+## Contact
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+For any questions or support, please contact your course instructor.
