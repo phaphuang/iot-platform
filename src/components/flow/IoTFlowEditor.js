@@ -38,8 +38,33 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   const { progress, completeSystem } = useProgress();
   const navigate = useNavigate();
   // State for nodes and edges
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, originalOnNodesChange] = useNodesState([]);
+  const [edges, setEdges, originalOnEdgesChange] = useEdgesState([]);
+  
+  // Reference for validateSystem to avoid circular dependencies
+  const validateSystemRef = useRef(null);
+  
+  // Custom handlers for nodes and edges changes that trigger validation
+  const onNodesChange = useCallback((changes) => {
+    // First apply the original changes
+    originalOnNodesChange(changes);
+    
+    // Then trigger validation after a small delay to ensure state is updated
+    setTimeout(() => {
+      if (validateSystemRef.current) validateSystemRef.current();
+    }, 50);
+  }, [originalOnNodesChange]);
+  
+  const onEdgesChange = useCallback((changes) => {
+    // First apply the original changes
+    originalOnEdgesChange(changes);
+    
+    // Then trigger validation after a small delay to ensure state is updated
+    setTimeout(() => {
+      if (validateSystemRef.current) validateSystemRef.current();
+    }, 50);
+  }, [originalOnEdgesChange]);
+  
   // State for system persistence
   const [hasLoadedState, setHasLoadedState] = useState(false);
   const [hasSavedState, setHasSavedState] = useState(false);
@@ -83,6 +108,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   
   // Handle connection between nodes with improved cursor alignment
   const onConnect = useCallback((params) => {
+    console.log('Connection event triggered');
     // Check if the connection is valid based on source and target types
     const sourceNode = nodes.find(node => node.id === params.source);
     const targetNode = nodes.find(node => node.id === params.target);
@@ -97,13 +123,15 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       const isValidConnection = checkConnectionValidity(sourceNode.data.type, targetNode.data.type);
       
       // Always add the connection but with different styling based on validity
-      setEdges((eds) => addEdge({
-        ...params,
-        animated: true,
-        data: { valid: isValidConnection },
-        style: { 
-          stroke: isValidConnection ? '#4caf50' : '#f44336', // Green for valid, Red for invalid
-          strokeWidth: isValidConnection ? (isTouchDevice ? 5 : 4) : (isTouchDevice ? 4 : 3),
+      // Add the new connection
+      setEdges((eds) => {
+        const newEdges = addEdge({
+          ...params,
+          animated: true,
+          data: { valid: isValidConnection },
+          style: { 
+            stroke: isValidConnection ? '#4caf50' : '#f44336', // Green for valid, Red for invalid
+            strokeWidth: isValidConnection ? (isTouchDevice ? 5 : 4) : (isTouchDevice ? 4 : 3),
           strokeDasharray: isValidConnection ? 'none' : '5,5', // Solid for valid, dashed for invalid
           transition: 'stroke-width 0.3s ease',
         },
@@ -125,7 +153,17 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
         pathOptions: isValidConnection ? {
           borderRadius: 20,
         } : undefined,
-      }, eds));
+        }, eds);
+        
+        // Run validation immediately after adding the edge
+        // Using a minimal timeout to ensure the edge state is updated
+        setTimeout(() => {
+          console.log('Validating after new connection');
+          validateSystem();
+        }, 10);
+        
+        return newEdges;
+      });
       
       if (isValidConnection) {
         // Show a success message to provide immediate feedback
@@ -170,7 +208,7 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   };
 
   // Function to validate the entire system based on the required connections
-  const validateSystem = () => {
+  const validateSystem = useCallback(() => {
     // Check if all required component types are present
     const componentTypesInSystem = nodes.map(node => node.data.type);
     const requiredTypes = validationRules.requiredComponents;
@@ -181,6 +219,10 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       100, 
       Math.round((componentTypesInSystem.filter(type => requiredTypes.includes(type)).length / requiredTypes.length) * 100)
     );
+    
+    console.log('Validating system: Component types =', componentTypesInSystem);
+    console.log('Required types =', requiredTypes);
+    console.log('Component progress =', componentProgress + '%');
     
     if (missingTypes.length > 0) {
       setIsSystemValid(false);
@@ -220,10 +262,32 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
     });
     
     // Calculate connection progress (50% for components + 50% for connections)
-    
     const connectionsProgress = Math.ceil((validConnectionsCount / requiredConnections.length) * 50);
     const totalProgress = 50 + connectionsProgress; // 50% for components + progress on connections
-    setConnectionProgress(totalProgress);
+    
+    console.log('Valid connections =', validConnectionsCount, '/', requiredConnections.length);
+    console.log('Connections progress =', connectionsProgress + '%');
+    console.log('Total progress =', totalProgress + '%');
+    
+    // Only show visual feedback if progress actually changed
+    if (totalProgress !== connectionProgress) {
+      // Update progress
+      setConnectionProgress(totalProgress);
+      
+      // Flash the progress indicator (subtle visual feedback)
+      const progressBar = document.querySelector('.MuiLinearProgress-root');
+      if (progressBar) {
+        // Add a temporary highlight class
+        progressBar.classList.add('progress-updated');
+        
+        // Remove the highlight class after animation completes
+        setTimeout(() => {
+          progressBar.classList.remove('progress-updated');
+        }, 1000);
+      }
+    } else {
+      setConnectionProgress(totalProgress); // Still set it even if unchanged
+    }
     
     // Show progress hint if we've made significant progress but aren't done yet
     if (!allRequiredConnectionsExist && validConnectionsCount > 0 && 
@@ -248,7 +312,12 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       // Update local state
       setAlreadyCompleted(true);
     }
-  };
+  }, [nodes, edges, validationRules, setConnectionProgress, setIsSystemValid, showAlert, completeSystem, systemId, alreadyCompleted, isSystemValid]);
+  
+  // Store the validateSystem in the ref so it can be used from other callbacks
+  useEffect(() => {
+    validateSystemRef.current = validateSystem;
+  }, [validateSystem]);
 
   // Handle dragging a component from the sidebar to the canvas
   const onDragStart = useCallback((event, nodeType, componentType) => {
@@ -332,8 +401,12 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
           // Show success message
           showAlert('Previous system state restored', 'info');
           
-          // Validate system to update progress
-          setTimeout(() => validateSystem(), 300);
+          // Validate system immediately to update progress
+          // Note: we need a very short timeout to ensure the UI has updated first
+          setTimeout(() => {
+            console.log('Forcing progress update after loading state');
+            validateSystem();
+          }, 50);
           return true;
         }
       }
@@ -419,7 +492,17 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       },
     };
     
-    setNodes((nds) => nds.concat(newNode));
+    setNodes((nds) => {
+      const updatedNodes = nds.concat(newNode);
+      
+      // Validate immediately after adding the node
+      setTimeout(() => {
+        console.log('Validating after node drop');
+        validateSystem();
+      }, 10);
+      
+      return updatedNodes;
+    });
   };
 
   // Handle drop event on the canvas
@@ -496,10 +579,16 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
   // Recalculate progress when nodes or edges change
   useEffect(() => {
     if (hasLoadedState && nodes.length > 0) {
-      validateSystem();
+      // Only validate after initial load to avoid extra validation during initialization
+      const timer = setTimeout(() => {
+        console.log('Validating system after nodes/edges change');
+        validateSystem();
+      }, 50);
+      
+      return () => clearTimeout(timer);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges, hasLoadedState]);
+  }, [nodes.length, edges.length, hasLoadedState]);
 
   // Alert and dialog handling functions are moved to the top (defined earlier)
   
@@ -592,7 +681,17 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
                   description: component.description
                 },
               };
-              setNodes((nds) => nds.concat(newNode));
+              setNodes((nds) => {
+                const updatedNodes = nds.concat(newNode);
+                
+                // Validate immediately after adding the node
+                setTimeout(() => {
+                  console.log('Validating after mobile node add');
+                  validateSystem();
+                }, 10);
+                
+                return updatedNodes;
+              });
               setMobileDrawerOpen(false);
             }
           } : undefined}
@@ -634,6 +733,16 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       @keyframes bounce {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.2); }
+      }
+      
+      @keyframes flashProgress {
+        0% { filter: brightness(1); }
+        30% { filter: brightness(1.5); }
+        100% { filter: brightness(1); }
+      }
+      
+      .progress-updated {
+        animation: flashProgress 1s ease-out;
       }
       
       .react-flow__edge-path {
@@ -773,7 +882,20 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant={isMobile ? "caption" : "subtitle2"} color="text.secondary">System Completion</Typography>
-          <Typography variant={isMobile ? "caption" : "subtitle2"} fontWeight="bold" color={connectionProgress === 100 ? 'success.main' : 'primary.main'}>
+          <Typography 
+            variant={isMobile ? "caption" : "subtitle2"} 
+            fontWeight="bold" 
+            color={connectionProgress === 100 ? 'success.main' : 'primary.main'}
+            sx={{
+              transition: 'all 0.3s ease',
+              animation: 'pulse 0.8s ease-in-out',
+              '@keyframes pulse': {
+                '0%': { transform: 'scale(1)', opacity: 0.8 },
+                '50%': { transform: 'scale(1.2)', opacity: 1 },
+                '100%': { transform: 'scale(1)', opacity: 0.8 },
+              },
+            }}
+          >
             {connectionProgress}%
           </Typography>
         </Box>
@@ -784,9 +906,16 @@ const IoTFlowEditor = ({ systemName, systemDescription, componentTypes, validati
             height: isMobile ? 6 : 8, 
             borderRadius: 4,
             backgroundColor: 'grey.300',
+            transition: 'all 0.5s ease',
             '& .MuiLinearProgress-bar': {
               backgroundColor: connectionProgress === 100 ? 'success.main' : 'primary.main',
-              transition: 'transform 0.5s ease-out'
+              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              animation: 'progressGlow 2s infinite',
+            },
+            '@keyframes progressGlow': {
+              '0%': { boxShadow: '0 0 3px rgba(33, 150, 243, 0.1)' },
+              '50%': { boxShadow: '0 0 8px rgba(33, 150, 243, 0.6)' },
+              '100%': { boxShadow: '0 0 3px rgba(33, 150, 243, 0.1)' },
             }
           }} 
         />
